@@ -1,0 +1,104 @@
+// generated with brms 2.16.3
+functions {
+  
+    real beta_binomial2_lpmf(int y, real q, real beta, int T) {
+        return beta_binomial_lpmf(y | T, beta * q / (1.0 - q), beta);
+    }
+    int beta_binomial2_rng(real q, real beta, int T) {
+        return beta_binomial_rng(T, beta * q / (1.0 - q), beta);
+    }
+
+}
+data {
+  int<lower=1> N;  // total number of observations
+  int Y[N];  // response variable
+  // data for custom integer vectors
+  int depth[N];
+  int beta;
+  // data for group-level effects of ID gene
+  int<lower=1> N_1;  // number of grouping levels
+  int<lower=1> J_1[N];  // grouping indicator per observation
+  // group-level predictor values
+  vector[N] age;
+  // data for group-level effects of ID protein
+  int<lower=1> N_2;  // number of grouping levels
+  int<lower=1> J_2[N];  // grouping indicator per observation
+  // data for group-level effects of ID clone
+  int<lower=1> N_3;  // number of grouping levels
+  int<lower=1> J_3[N];  // grouping indicator per observation
+  // data for group-level effects of ID offset
+  int<lower=1> N_4;  // number of grouping levels
+  int<lower=1> J_4[N];  // grouping indicator per observation
+  int prior_only;  // should the likelihood be ignored?
+
+
+  // testing data
+  int<lower=1> N_new;
+  vector[N_new] VAF_new;
+  // group-level predictor values
+  vector[N_new] age_new;
+  int depth_new[N_new];
+  // data for group-level effects of ID protein
+  int<lower=1> J_1_new[N_new];  // grouping indicator per observation
+  int<lower=1> J_2_new[N_new];  // grouping indicator per observation
+  // data for group-level effects of ID clone
+  int<lower=1> J_3_new[N_new];  // grouping indicator per observation
+  // data for group-level effects of ID offset
+  int<lower=1> J_4_new[N_new];  // grouping indicator per observation
+}
+transformed data {
+}
+parameters {
+  vector[N_1] gene;  
+  vector[N_2] site;  
+  vector[N_3] pid;  
+  vector<lower=-30,upper=0>[N_4] u;  
+}
+model {
+  // likelihood including constants
+  if (!prior_only) {
+    // initialize linear predictor term
+    vector[N] q = rep_vector(0.0, N);
+    for (n in 1:N) {
+      // add more terms to the linear predictor
+      q[n] += ( gene[J_1[n]]  + site[J_2[n]]  + pid[J_3[n]]) * age[n]  + u[J_4[n]];
+    }
+    for (n in 1:N) {
+      // apply the inverse link function
+      /* print("before ilogit q[n] = ", q[n]) */
+      q[n] = inv_logit(q[n]) * 0.5;
+      /* print("q[n] = ", q[n]) */
+    }
+    for (n in 1:N) {
+        real alpha = beta * q[n] / (1.0 - q[n]);
+        /* print("alpha = ", alpha); */
+        target += beta_binomial2_lpmf(Y[n] | q[n], beta, depth[n]);
+    }
+  }
+  // priors including constants
+  /* target += gamma_lpdf(phi | 0.01, 0.01); */
+  target += normal_lpdf(gene | 0.0, 0.10);
+  target += normal_lpdf(site | 0.0, 0.10);
+  target += normal_lpdf(pid | 0.0, 0.05);
+}
+generated quantities {
+    vector[N_new] q_new = rep_vector(0.0, N_new);
+    vector[N_new] total_effect = rep_vector(0.0, N_new);
+    vector[N_new] alpha_new = rep_vector(0.0, N_new);
+    vector[N_new] mu_new = rep_vector(0.0, N_new);
+    vector[N_new] reads_new = rep_vector(0.0, N_new);
+    real cor;
+    for (n in 1:N_new) {
+        total_effect[n] =+ gene[J_1_new[n]]  + site[J_2_new[n]]  + pid[J_3_new[n]];
+        q_new[n] += total_effect[n] * age_new[n]  + u[J_4_new[n]];
+    }
+    for (n in 1:N_new) {
+      // apply the inverse link function
+      q_new[n] = inv_logit(q_new[n]) * 0.5;
+      alpha_new[n] = beta * q_new[n] / (1.0 - q_new[n]);
+      mu_new[n] = alpha_new[n] / (alpha_new[n] + beta);
+      reads_new[n] = mu_new[n] * depth_new[n];
+    }
+
+    cor = ((1.0/N_new) * dot_product(mu_new, VAF_new) - mean(mu_new) * mean(VAF_new)) / (sd(VAF_new) * sd(mu_new));
+}
