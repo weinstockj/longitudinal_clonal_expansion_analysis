@@ -88,7 +88,7 @@ dfm_bt = dfm %>%
     mutate(
         unpooled_fitness_rsq = map_dbl(
             splits,
-            ~with(as.data.frame(.x), cor(unpooled_fitness_estimate, dVAFdT, use = "complete.obs") ^ 2)
+            ~with(as.data.frame(.x), cor(unpooled_fitness_estimate, inverse_normalize(dVAFdT), use = "complete.obs") ^ 2)
         )
     )
 
