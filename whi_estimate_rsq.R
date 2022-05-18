@@ -67,6 +67,10 @@ fitness_estimates = training %>%
             select(sample_id, unpooled_fitness_estimate) %>%
             distinct(.)
 
+inverse_normalize = function(x) {
+    qnorm(rank(x, na.last = "keep") / (sum(!is.na(x)) + 1))
+}
+
 dfm = testing %>%
     bind_rows(training %>% dplyr::select(-matches("unpooled"))) %>%
     group_by(sample_id) %>%
