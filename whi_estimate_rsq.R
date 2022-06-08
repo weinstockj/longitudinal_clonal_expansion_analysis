@@ -87,6 +87,8 @@ dfm = testing %>%
     dplyr::inner_join(fitness_estimates) %>%
     tidyr::drop_na(is_testing) # filter to test data points
 
+readr::write_tsv(dfm, "WHI_with_fitness_estimates.tsv")
+
 dfm_bt = dfm %>%
     bootstraps(times = 1000) %>%
     mutate(
