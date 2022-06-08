@@ -143,7 +143,7 @@ log_info("fitting model now")
 #        J_4_new = J_3_new
 #     )
 # )
-# log_info("done")
+log_info("done")
 
 lookup = tibble(
     # .variable = glue("mu_new[{1:nrow(testing)}]"),
@@ -193,7 +193,8 @@ annotated_with_fitness = clone_fitness %>%
     ungroup %>%
     dplyr::left_join(
         training %>% 
-            dplyr::select(PID, unpooled_fitness_estimate)
+            dplyr::select(PID, unpooled_fitness_estimate) %>%
+            dplyr::distinct(.)
     )
 
 readr::write_tsv(annotated_with_fitness, "fabre_with_total_fitness_estimate.tsv")
@@ -232,7 +233,7 @@ bt_plot = ggplot(data = dfm_bt %>% unnest(tidy_fitness), aes(x = r.squared)) +
                 y = "Count per 1,000 bootstrap replicates"
             )
 
-date = "2022_05_13"
+date = "2022_06_08"
 ggsave(glue("expanded_fabre_dVAFdT_hist_{date}.pdf"), bt_plot, width = 6, height = 4, units = "in")
 
 unpooled_mean_rsquared = dfm_bt %>%
